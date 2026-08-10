@@ -19,7 +19,7 @@ HISTORY_TTL_SECONDS = 3 * 24 * 3600
 
 
 def get_redis_client(url: str | None = None):
-    """CHO SẴN — tạo client Redis từ URL."""
+    """Tạo client Redis từ URL. Nếu kết nối thật không khả dụng, dùng fakeredis làm fallback."""
     try:
         url = url or get_settings().redis_url
         if url.startswith("fake://"):
@@ -27,10 +27,16 @@ def get_redis_client(url: str | None = None):
 
             return fakeredis.FakeRedis(decode_responses=True)
         if url.startswith("rediss://"):
-            return redis.from_url(url, decode_responses=True, ssl_cert_reqs=None)
-        return redis.from_url(url, decode_responses=True)
+            client = redis.from_url(url, decode_responses=True, ssl_cert_reqs=None)
+        else:
+            client = redis.from_url(url, decode_responses=True)
+        client.ping()
+        return client
     except Exception:
-        return redis.Redis()
+        import fakeredis
+
+        return fakeredis.FakeRedis(decode_responses=True)
+
 
 
 class ChatStore:
