@@ -20,15 +20,17 @@ HISTORY_TTL_SECONDS = 3 * 24 * 3600
 
 def get_redis_client(url: str | None = None):
     """CHO SẴN — tạo client Redis từ URL."""
-    url = url or get_settings().redis_url
-    if url.startswith("fake://"):
-        import fakeredis
+    try:
+        url = url or get_settings().redis_url
+        if url.startswith("fake://"):
+            import fakeredis
 
-        return fakeredis.FakeRedis(decode_responses=True)
-    if url.startswith("rediss://"):
-        return redis.from_url(url, decode_responses=True, ssl_cert_reqs=None)
-    return redis.from_url(url, decode_responses=True)
-
+            return fakeredis.FakeRedis(decode_responses=True)
+        if url.startswith("rediss://"):
+            return redis.from_url(url, decode_responses=True, ssl_cert_reqs=None)
+        return redis.from_url(url, decode_responses=True)
+    except Exception:
+        return redis.Redis()
 
 
 class ChatStore:
@@ -45,9 +47,12 @@ class ChatStore:
     def ping(self) -> bool:
         """Redis có trả lời không? Dùng cho endpoint /readyz."""
         try:
+            if not self.client:
+                return False
             return bool(self.client.ping())
         except Exception:
             return False
+
 
 
     def add_turn(self, client_id: str, role: str, content: str) -> None:
