@@ -78,12 +78,29 @@ class ChatRequest(BaseModel):
 # ─────────────────────────────────────────────────────────────
 # Health & readiness
 # ─────────────────────────────────────────────────────────────
+@app.get("/")
+def root():
+    """Trang chủ — thông tin service và danh sách endpoint."""
+    return {
+        "status": "ok",
+        "service": SERVICE_NAME,
+        "version": SERVICE_VERSION,
+        "endpoints": {
+            "health": "/healthz",
+            "readiness": "/readyz",
+            "docs": "/docs",
+            "chat": "/chat (POST)",
+        },
+    }
+
+
 @app.get("/healthz")
 def healthz():
     """Liveness probe — process còn sống không?"""
     if shutdown_guard.draining:
         return JSONResponse(status_code=503, content={"status": "draining"})
     return {"status": "ok", "service": SERVICE_NAME, "version": SERVICE_VERSION}
+
 
 
 @app.get("/readyz")
