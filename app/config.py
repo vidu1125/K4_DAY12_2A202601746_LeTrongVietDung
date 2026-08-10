@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,15 +36,26 @@ class Settings(BaseSettings):
     định = fail fast ngay lúc khởi động.
     """
 
+    port: int = 8000
+    api_token: str
+    redis_url: str = "redis://localhost:6379/0"
+    bucket_capacity: int = 10
+    refill_per_minute: int = 10
+    daily_budget_usd: float = 1.0
+    log_level: str = "INFO"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
-    # TODO (CP1): khai báo 7 trường theo bảng trên, ví dụ:
-    #     port: int = 8000
-    #     api_token: str
+    @field_validator("api_token")
+    @classmethod
+    def validate_api_token(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("api_token cannot be empty")
+        return v
 
 
 @lru_cache(maxsize=1)
