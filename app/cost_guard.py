@@ -37,8 +37,11 @@ class CostGuard:
 
     def spent(self, client_id: str, day: str | None = None) -> float:
         """Số tiền client đã tiêu trong ngày."""
-        val = self.client.get(self._key(client_id, day))
-        return float(val) if val is not None else 0.0
+        try:
+            val = self.client.get(self._key(client_id, day))
+            return float(val) if val is not None else 0.0
+        except Exception:
+            return 0.0
 
     def check(
         self,
@@ -56,9 +59,13 @@ class CostGuard:
     def record(self, client_id: str, cost: float, day: str | None = None) -> float:
         """Cộng dồn chi phí vừa phát sinh, trả về tổng mới."""
         key = self._key(client_id, day)
-        total = self.client.incrbyfloat(key, cost)
-        self.client.expire(key, KEY_TTL_SECONDS)
-        return float(total)
+        try:
+            total = self.client.incrbyfloat(key, cost)
+            self.client.expire(key, KEY_TTL_SECONDS)
+            return float(total)
+        except Exception:
+            return cost
+
 
 
     def remaining(self, client_id: str, day: str | None = None) -> float:

@@ -45,7 +45,11 @@ class TokenBucket:
     def available(self, client_id: str, now: float | None = None) -> float:
         """Số token còn lại ở thời điểm ``now`` (đã tính phần nạp thêm)."""
         now = now if now is not None else time.time()
-        state = self.client.hgetall(self._key(client_id))
+        try:
+            state = self.client.hgetall(self._key(client_id))
+        except Exception:
+            return float(self.capacity)
+
         if not state:
             return float(self.capacity)
         
@@ -70,8 +74,11 @@ class TokenBucket:
                 headers={"Retry-After": str(self.retry_after(tokens))},
             )
         key = self._key(client_id)
-        self.client.hset(key, mapping={"tokens": tokens - 1, "ts": now})
-        self.client.expire(key, BUCKET_TTL_SECONDS)
+        try:
+            self.client.hset(key, mapping={"tokens": tokens - 1, "ts": now})
+            self.client.expire(key, BUCKET_TTL_SECONDS)
+        except Exception:
+            pass
 
 
     def retry_after(self, tokens: float) -> int:
